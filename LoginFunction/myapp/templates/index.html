@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Hệ thống tài khoản</title>
+    <style>
+        body { font-family: Arial; display: flex; justify-content: center; padding-top: 80px; background: #f0f0f0; }
+        .box { background: white; padding: 30px; border-radius: 10px; width: 320px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; }
+        input { width: 100%; padding: 8px; margin: 8px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; }
+        .btn-row { display: flex; gap: 10px; margin-top: 15px; }
+        button { flex: 1; padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; }
+        #btn-login { background: #4CAF50; }
+        #btn-register { background: #008CBA; }
+        #message { margin-top: 15px; text-align: center; font-weight: bold; }
+    </style>
+</head>
+<body>
+<div class="box">
+    <h2>HỆ THỐNG TÀI KHOẢN</h2>
+    <input type="text" id="username" placeholder="Tài khoản" />
+    <input type="password" id="password" placeholder="Mật khẩu" />
+    <div class="btn-row">
+        <button id="btn-login" onclick="handleLogin()">Đăng nhập</button>
+        <button id="btn-register" onclick="handleRegister()">Đăng ký</button>
+    </div>
+    <div id="message"></div>
+</div>
+
+<script>
+    function getInputs() {
+        return {
+            username: document.getElementById("username").value.trim(),
+            password: document.getElementById("password").value.trim()
+        };
+    }
+
+    function showMessage(text, color) {
+        const el = document.getElementById("message");
+        el.style.color = color;
+        el.textContent = text;
+    }
+
+    async function handleLogin() {
+        const data = getInputs();
+        if (!data.username || !data.password) {
+            showMessage("Vui lòng nhập đầy đủ!", "orange");
+            return;
+        }
+        try {
+            const res = await fetch("/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            showMessage(result.message, result.success ? "green" : "red");
+        } catch (err) {
+            showMessage("Lỗi kết nối server: " + err.message, "red");
+        }
+    }
+
+    async function handleRegister() {
+        const data = getInputs();
+        if (!data.username || !data.password) {
+            showMessage("Vui lòng nhập đầy đủ!", "orange");
+            return;
+        }
+        try {
+            const res = await fetch("/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            showMessage(result.message, result.success ? "green" : "red");
+        } catch (err) {
+            showMessage("Lỗi kết nối server: " + err.message, "red");
+        }
+    }
+</script>
+</body>
+</html>
