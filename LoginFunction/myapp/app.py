@@ -1,12 +1,16 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import sqlite3
 import bcrypt
 import os
+import jwt
+import datetime
 
 app = Flask(__name__)
+CORS(app)
 
-# Absolute path so it works regardless of working directory
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "users.db")
+SECRET_KEY = os.environ.get("SECRET_KEY", "eventrent-secret-2026")
 
 def init_db():
     conn = sqlite3.connect(DB_FILE)
@@ -19,11 +23,14 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Call at import time — runs whether started via WSGI or directly
 init_db()
 
 def get_db():
     return sqlite3.connect(DB_FILE)
+
+@app.route("/")
+def index():
+    return "EventRent API is running!", 200
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -59,11 +66,29 @@ def login():
     if not row or not bcrypt.checkpw(password.encode(), row[0].encode()):
         return jsonify({"success": False, "message": "Tài khoản hoặc mật khẩu không đúng!"})
 
-    return jsonify({"success": True, "message": f"Chào mừng {username}!"})
+    token = jwt.encode({
+        "username": username,
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7)
+    }, SECRET_KEY, algorithm="HS256")
 
-@app.route("/")
-def index():
-    return render_template("index.html")
+    return jsonify({
+        "success": True,
+        "message": f"Chào mừng {username}!",
+        "username": username,
+        "token": token
+    })
+
+@app.route("/verify", methods=["POST"])
+def verify():
+    data = request.json
+    token = data.get("token", "")
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        return jsonify({"success": True, "username": payload["username"]})
+    except jwt.ExpiredSignatureError:
+        return jsonify({"success": False, "message": "Token đã hết hạn!"})
+    except Exception:
+        return jsonify({"success": False, "message": "Token không hợp lệ!"})
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=10000, debug=False)
